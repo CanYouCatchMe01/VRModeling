@@ -109,7 +109,6 @@ namespace StereoKitProject2
             if (!SK.Initialize(settings))
                 Environment.Exit(1);
 
-
             //Cube
             Pose cubePose = new Pose(0, 0, -0.5f, Quat.Identity);
             Model cube = Model.FromMesh(
@@ -123,11 +122,25 @@ namespace StereoKitProject2
 
             //Triangulate mesh
             Mesh triangulateMesh = new Mesh();
-            var triangulateModel = Model.FromMesh(triangulateMesh, Default.MaterialUI);
+            Model triangulateModel = Model.FromMesh(triangulateMesh, Default.MaterialUI);
             Pose triangulatePose = new Pose(0, 0, 0, Quat.Identity); //Zero for now else the mesh is wrong
 
             //Create a list of vec3
             List<Vec3> spherePoints = new List<Vec3>();
+            Material material = new Material(Default.ShaderUI);
+            material.SetColor("color", new Color(1, 1, 0));
+
+            // Or with a normal for loop
+            //Log.Info("Builtin Unlit Materials contain these parameters:");
+            //for (int i = 0; i < material.ParamCount; i += 1)
+            //{
+            //    MatParamInfo info = material.GetParamInfo(i);
+            //    Log.Info($"- {info.name} : {info.type}");
+            //}
+
+            Model sphereModel = Model.FromMesh(
+                Mesh.GenerateSphere(0.015f),
+                material);
 
             // Core application loop
             while (SK.Step(() =>
@@ -153,6 +166,13 @@ namespace StereoKitProject2
                 UI.Handle("Triangulate", ref triangulatePose, triangulateModel.Bounds);
                 //cube.Draw(cubePose.ToMatrix());
                 triangulateModel.Draw(triangulatePose.ToMatrix());
+
+                //Move the small spheres to world position
+                for (int i = 0; i < spherePoints.Count; i++)
+                {
+                    Matrix worldMatrix = Matrix.T(spherePoints[i]) * triangulatePose.ToMatrix();
+                    sphereModel.Draw(worldMatrix);
+                }
             })) ;
             SK.Shutdown();
         }
