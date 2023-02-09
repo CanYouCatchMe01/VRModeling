@@ -149,7 +149,7 @@ namespace StereoKitProject2
                 var hand = Input.Hand(Handed.Right);
                 bool handTacking = hand.IsTracked;
                 bool controllerTracking = controller.IsTracked;
-                if (controller.IsX1JustPressed)
+                if (controller.IsX1JustPressed || hand.IsJustGripped)
                 {
                     Vec3 fingertipWorldPos = hand[FingerId.Index, JointId.Tip].position;
                     var fingertipLocalPos = Matrix.T(fingertipWorldPos) * triangulatePose.ToMatrix().Inverse;
