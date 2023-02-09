@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StereoKit" Version="0.3.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\floor.hlsl" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="CGALDotNet">
+      <HintPath>CGALDotNet\Plugins\CGALDotNet.dll</HintPath>
+    </Reference>
+    <Reference Include="CGALDotNetGeometry">
+      <HintPath>CGALDotNet\Plugins\CGALDotNetGeometry.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <SKShader Include="Assets\floor.hlsl" />
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="xcopy /q /y &quot;$(ProjectDir)CGALDotNet\CGALWrapper.dll&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;xcopy /q /y &quot;$(ProjectDir)CGALDotNet\gmp.dll&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;xcopy /q /y &quot;$(ProjectDir)CGALDotNet\mpfr-6.dll&quot; &quot;$(TargetDir)&quot;" />
+  </Target>
+
+</Project>
+
