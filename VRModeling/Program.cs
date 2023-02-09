@@ -8,38 +8,28 @@ using CGALDotNet.Polyhedra;
 using CGALDotNet.Extensions;
 using CGALDotNetGeometry.Extensions;
 using CGALDotNet.Geometry;
+using System.Collections.Generic;
 
 namespace StereoKitProject2
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void CalculateTriangleMesh(List<Vec3> somePoints, Mesh aMesh)
         {
-            // Initialize StereoKit
-            SKSettings settings = new SKSettings
+            //Needs 4 points to calculate hull
+            if (somePoints.Count < 4)
             {
-                appName = "StereoKitProject2",
-                assetsFolder = "Assets",
-            };
-            if (!SK.Initialize(settings))
-                Environment.Exit(1);
+                return;
+            }
 
+            var inPointsCGAL = new Point3d[somePoints.Count];
 
-            // Create assets used by the app
-            Pose cubePose = new Pose(0, 0, -0.5f, Quat.Identity);
-            Model cube = Model.FromMesh(
-                Mesh.GenerateRoundedCube(Vec3.One * 0.1f, 0.02f),
-                Default.MaterialUI);
+            for (int i = 0; i < somePoints.Count; i++)
+            {
+                inPointsCGAL[i] = new Point3d((double)somePoints[i].x, (double)somePoints[i].y, (double)somePoints[i].z);
+            }
 
-            Matrix floorTransform = Matrix.TS(0, -1.5f, 0, new Vec3(30, 0.1f, 30));
-            Material floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
-            floorMaterial.Transparency = Transparency.Blend;
-
-            //Random points
-            var box = new Box3d(-1, 1);
-            var randomPoints = Point3d.RandomPoints(1, 10, box);
-
-            DelaunayTriangulation3<EEK> m_triangulationm_triangulation = new DelaunayTriangulation3<EEK>(randomPoints);
+            DelaunayTriangulation3<EEK> m_triangulationm_triangulation = new DelaunayTriangulation3<EEK>(inPointsCGAL);
             var hull = m_triangulationm_triangulation.ComputeHull();
 
             var verticesStereo = new Vertex[hull.VertexCount];
@@ -73,7 +63,7 @@ namespace StereoKitProject2
                     verticesStereo[i].col = Color32.White;
                 }
             }
-            
+
             //indices
             var indicesCGAL = new int[hull.FaceCount * 3];
             hull.GetTriangleIndices(indicesCGAL, indicesCGAL.Length);
@@ -84,16 +74,59 @@ namespace StereoKitProject2
                 indiciesStereo[i] = (uint)indicesCGAL[i];
             }
 
+            //Update mesh
+            aMesh.SetVerts(verticesStereo);
+            aMesh.SetInds(indiciesStereo);
+        }
+        
+        static void Main(string[] args)
+        {
+            // Initialize StereoKit
+            SKSettings settings = new SKSettings
+            {
+                appName = "StereoKitProject2",
+                assetsFolder = "Assets",
+            };
+            if (!SK.Initialize(settings))
+                Environment.Exit(1);
 
-            Mesh mesh = new Mesh();
-            mesh.SetVerts(verticesStereo);
-            mesh.SetInds(indiciesStereo);
-            var triangulateModel = Model.FromMesh(mesh, Default.MaterialUI);
-            Pose triangulatePose = new Pose(0, 0, -0.5f, Quat.Identity);
+
+            //Cube
+            Pose cubePose = new Pose(0, 0, -0.5f, Quat.Identity);
+            Model cube = Model.FromMesh(
+                Mesh.GenerateRoundedCube(Vec3.One * 0.1f, 0.02f),
+                Default.MaterialUI);
+
+            //Floor
+            Matrix floorTransform = Matrix.TS(0, -1.5f, 0, new Vec3(30, 0.1f, 30));
+            Material floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
+            floorMaterial.Transparency = Transparency.Blend;
+
+            //Triangulate mesh
+            Mesh triangulateMesh = new Mesh();
+            var triangulateModel = Model.FromMesh(triangulateMesh, Default.MaterialUI);
+            Pose triangulatePose = new Pose(0, 0, 0, Quat.Identity); //Zero for now else the mesh is wrong
+
+            //Create a list of vec3
+            List<Vec3> spherePoints = new List<Vec3>();
 
             // Core application loop
             while (SK.Step(() =>
             {
+                var controller = Input.Controller(Handed.Right);
+                var hand = Input.Hand(Handed.Right);
+                bool handTacking = hand.IsTracked;
+                bool controllerTracking = controller.IsTracked;
+                if (controller.IsX1JustPressed)
+                {
+                    Vec3 fingertipWorldPos = hand[FingerId.Index, JointId.Tip].position;
+                    var fingertipLocalPos = Matrix.T(fingertipWorldPos) * triangulatePose.ToMatrix().Inverse;
+
+                    spherePoints.Add(fingertipLocalPos.Translation);
+                    CalculateTriangleMesh(spherePoints, triangulateMesh);
+                    triangulateModel.RecalculateBounds();
+                }
+
                 if (SK.System.displayType == Display.Opaque)
                     Default.MeshCube.Draw(floorMaterial, floorTransform);
 
