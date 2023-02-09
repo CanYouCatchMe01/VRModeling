@@ -9,6 +9,7 @@ using CGALDotNet.Extensions;
 using CGALDotNetGeometry.Extensions;
 using CGALDotNet.Geometry;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace StereoKitProject2
 {
@@ -60,7 +61,25 @@ namespace StereoKitProject2
                 //colors
                 for (int i = 0; i < verticesStereo.Length; i++)
                 {
-                    verticesStereo[i].col = Color32.White;
+                    Color32 color = new Color32(255, 255, 255, 255);
+
+                    //Switch between red/green/blue colors
+                    switch (i % 3)
+                    {
+                        case 0:
+                            color = new Color32(255, 0, 0, 255);
+                            break;
+                        case 1:
+                            color = new Color32(0, 255, 0, 255);
+                            break;
+                        case 2:
+                            color = new Color32(0, 0, 255, 255);
+                            break;
+                        default:
+                            break;
+                    }
+
+                    verticesStereo[i].col = color;
                 }
             }
 
